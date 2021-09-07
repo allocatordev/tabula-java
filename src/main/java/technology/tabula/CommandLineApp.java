@@ -2,19 +2,19 @@ package technology.tabula;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import technology.tabula.detectors.DetectionAlgorithm;
@@ -31,7 +31,7 @@ public class CommandLineApp {
 
     private static String VERSION = "1.0.6-SNAPSHOT";
     private static String VERSION_STRING = String.format("tabula %s (c) 2012-2020 Manuel Aristarán", VERSION);
-    private static String BANNER = "\nTabula helps you extract tables from PDFs\n\n";
+    private static String BANNER = "\nTabula helps you extract tables from PDFs. Run with 'listen' as the first argument to run this as a local server. tabula listen --help for details.\n\n";
 
     private static final int RELATIVE_AREA_CALCULATION_MODE = 0;
     private static final int ABSOLUTE_AREA_CALCULATION_MODE = 1;
@@ -58,25 +58,30 @@ public class CommandLineApp {
     }
 
     public static void main(String[] args) {
-        CommandLineParser parser = new DefaultParser();
-        try {
-            // parse the command line arguments
-            CommandLine line = parser.parse(buildOptions(), args);
+        if (args[0].equals("listen")) {
+            CommandLineServerApp.serverMain(args);
+        }
+        else {
+            CommandLineParser parser = new DefaultParser();
+            try {
+                // parse the command line arguments
+                CommandLine line = parser.parse(buildOptions(), args);
 
-            if (line.hasOption('h')) {
-                printHelp();
-                System.exit(0);
+                if (line.hasOption('h')) {
+                    printHelp();
+                    System.exit(0);
+                }
+
+                if (line.hasOption('v')) {
+                    System.out.println(VERSION_STRING);
+                    System.exit(0);
+                }
+
+                new CommandLineApp(System.out, line).extractTables(line);
+            } catch (ParseException exp) {
+                System.err.println("Error: " + exp.getMessage());
+                System.exit(1);
             }
-
-            if (line.hasOption('v')) {
-                System.out.println(VERSION_STRING);
-                System.exit(0);
-            }
-
-            new CommandLineApp(System.out, line).extractTables(line);
-        } catch (ParseException exp) {
-            System.err.println("Error: " + exp.getMessage());
-            System.exit(1);
         }
         System.exit(0);
     }
@@ -99,11 +104,13 @@ public class CommandLineApp {
             throw new ParseException("Need exactly one filename\nTry --help for help");
         }
 
-        File pdfFile = new File(line.getArgs()[0]);
-        if (!pdfFile.exists()) {
-            throw new ParseException("File does not exist");
+        File pdfFile = new InputFile(line.getArgs()[0]).localizeFile(line.hasOption("nc"));
+        if( pdfFile != null && pdfFile.exists() ) {
+        	extractFileTables(line, pdfFile);
         }
-        extractFileTables(line, pdfFile);
+        else {
+        	throw new ParseException("File does not exist");
+        }
     }
 
     public void extractDirectoryTables(CommandLine line, File pdfDirectory) throws ParseException {
@@ -358,6 +365,7 @@ public class CommandLineApp {
                 .hasArg()
                 .argName("PAGES")
                 .build());
+        o.addOption("nc", "nocache", false, "If file is s3:// based, force the system to fetch the file again (discard locally stored version if present)");
 
         return o;
     }
