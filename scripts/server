@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# This file is for local usage only
+
+export JARFILE=$(find target/*.jar)
+export PIDFILE=~/.tabula_server.pid
+
+case "$1" in 
+run)
+   echo "Starting Tabula Server on: http://127.0.0.1:4110/"
+   java -jar $JARFILE listen -p 4110
+   ;;
+start)
+   if [ -e ~/.tabula_server.pid ]; then
+      echo tabula_server is running, pid=`cat $PIDFILE`
+   else
+      java -jar $JARFILE listen -p 4110 &
+      echo $!>$PIDFILE
+   fi
+   ;;
+stop)
+   if [ -e ~/.tabula_server.pid ]; then
+      echo stopping tabula_server...
+      kill `cat $PIDFILE`
+      rm -f $PIDFILE
+   else
+      echo tabula_server is NOT running
+   fi
+   ;;
+restart)
+   $0 stop
+   $0 start
+   ;;
+status)
+   if [ -e $PIDFILE ]; then
+      echo tabula_server is running, pid=`cat $PIDFILE`
+   else
+      echo tabula_server is NOT running
+      exit 1
+   fi
+   ;;
+*)
+   echo "Usage: $0 {start|stop|status|restart}"
+esac
+
+exit 0 
