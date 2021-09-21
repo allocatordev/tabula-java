@@ -22,6 +22,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
+import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -158,11 +159,13 @@ public class CommandLineServerApp {
       Map<String, LinkedList<String>> queryParts = splitQuery(t.getRequestURI());
 
       Response response = handleRequest(t, queryParts);
+      Headers responseHeaders = t.getResponseHeaders();
+      responseHeaders.set("Content-Type", "text/plain;charset=UTF-8");
 
       if (debug)
-        System.out.println("DEBUG:\n" + response.body + "\n\n");
+        System.out.println("DEBUG: Response: " + response.body + "\n\n");
 
-      t.sendResponseHeaders(response.code, response.body.length());
+      t.sendResponseHeaders(response.code, 0);
       OutputStream os = t.getResponseBody();
       os.write(response.body.getBytes());
       os.close();
