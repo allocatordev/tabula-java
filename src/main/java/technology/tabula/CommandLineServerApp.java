@@ -127,7 +127,7 @@ public class CommandLineServerApp {
 
     protected Map<String, LinkedList<String>> splitQuery(URI url) throws UnsupportedEncodingException {
       Map<String, LinkedList<String>> queryPairs = new LinkedHashMap<String, LinkedList<String>>();
-      String query = url.getQuery();
+      String query = url.getRawQuery();
       if (query == null)
         query = "";
       String[] pairs = query.split("&");
